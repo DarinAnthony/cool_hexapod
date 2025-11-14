@@ -26,7 +26,7 @@ class HexapodEnv(DirectRLEnv):
         super().__init__(cfg, render_mode, **kwargs)
 
         # Enable markers only when not headless (e.g., render_mode="human")
-        self._visualization_enabled = True
+        self._visualization_enabled = False
 
         if self._visualization_enabled:
             # velocity/command visualization 
@@ -177,10 +177,16 @@ class HexapodEnv(DirectRLEnv):
             self._episode_sums[key] += value
         return reward
 
+    # def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
+    #     time_out = self.episode_length_buf >= self.max_episode_length - 1
+    #     net_contact_forces = self._contact_sensor.data.net_forces_w_history
+    #     died = torch.any(torch.max(torch.norm(net_contact_forces[:, :, self._base_id], dim=-1), dim=1)[0] > 1.0, dim=1)
+    #     return died, time_out
+
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         time_out = self.episode_length_buf >= self.max_episode_length - 1
-        net_contact_forces = self._contact_sensor.data.net_forces_w_history
-        died = torch.any(torch.max(torch.norm(net_contact_forces[:, :, self._base_id], dim=-1), dim=1)[0] > 1.0, dim=1)
+        # DEBUG: ignore base_contact deaths for a moment
+        died = torch.zeros_like(time_out)
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):

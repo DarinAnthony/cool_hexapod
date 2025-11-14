@@ -1,0 +1,5 @@
+[2025-11-14 22:48:06,003][isaaclab.sim.utils.utils][WARNING] - [Compat] Isaac Sim < 5.0 does not support thread-local stage contexts. Skipping use_stage().
+[2025-11-14 22:48:06,009][isaaclab.sim.utils.utils][WARNING] - [Compat] Isaac Sim < 5.0 does not support thread-local stage contexts. Skipping use_stage().
+[2025-11-14 22:48:06,879][isaaclab.sim.utils.utils][WARNING] - [Compat] Isaac Sim < 5.0 does not support thread-local stage contexts. Skipping use_stage().
+[2025-11-14 22:48:09,373][isaaclab.sim.utils.utils][WARNING] - [Compat] Isaac Sim < 5.0 does not support thread-local stage contexts. Skipping use_stage().
+[2025-11-14 22:48:11,839][isaaclab.assets.articulation.articulation][WARNING] - Spatial tendons are not supported in Isaac Sim < 5.0: patching spatial-tendon getter and setter to use dummy value

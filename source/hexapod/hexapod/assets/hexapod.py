@@ -73,7 +73,7 @@ HEXAPOD_CFG = ArticulationCfg(
 
     # Start slightly above ground in a neutral-ish pose
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.15),  # adjust if it spawns intersecting the ground
+        pos=(0.0, 0.0, 0.04),  # adjust if it spawns intersecting the ground
         # regexes work like in ANYmal: all rotate/thigh/foot joints to 0 rad
         joint_pos={
             ".*_rotate": 0.0,
