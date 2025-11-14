@@ -13,11 +13,11 @@ from . import agents
 
 
 gym.register(
-    id="Template-Hexapod-Direct-v0",
+    id="Isaac-Hexapod-Direct-v0",
     entry_point=f"{__name__}.hexapod_env:HexapodEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.hexapod_env_cfg:HexapodEnvCfg",
+        "env_cfg_entry_point": f"{__name__}.hexapod_env_cfg:HexapodFlatEnvCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPORunnerCfg",
         "skrl_amp_cfg_entry_point": f"{agents.__name__}:skrl_amp_cfg.yaml",

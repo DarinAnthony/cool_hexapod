@@ -1,0 +1,10 @@
+pyproject.toml
+setup.py
+hexapod/__init__.py
+hexapod/ui_extension_example.py
+hexapod.egg-info/PKG-INFO
+hexapod.egg-info/SOURCES.txt
+hexapod.egg-info/dependency_links.txt
+hexapod.egg-info/not-zip-safe
+hexapod.egg-info/requires.txt
+hexapod.egg-info/top_level.txt

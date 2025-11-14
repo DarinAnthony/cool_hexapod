@@ -1,0 +1,306 @@
+<?xml version="1.0"?>
+<robot name="hexapod_min">
+
+  <!-- material/材料 -->
+  <material name="mat_body"><color rgba="0.5 0.5 0.5 1"/></material>
+  <material name="mat_joint"><color rgba="0.0 1.0 0.0 1"/></material>
+  <material name="mat_thigh"><color rgba="0.0 0.0 1.0 1"/></material>
+  <material name="mat_foot"><color rgba="1.0 0.0 0.0 1"/></material>
+
+    
+  <!-- Link/连接关节 -->
+  <!-- Base -->
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0.0 0.0 0.095" rpy="0.0 0.0 0.0"/>
+      <mass value="2"/>
+      <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.095" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="meshes/body.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="mat_body"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.095" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="meshes/body.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- joint -->
+  <link name="leg1_rotate_link">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="mat_joint"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- thigh -->
+  <link name="leg1_thigh_link">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.18"/>
+      <inertia ixx="0.0006" ixy="0" ixz="0" iyy="0.0006" iyz="0" izz="0.0006"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="mat_thigh"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <!-- foot -->
+  <link name="leg1_foot_link">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="mat_foot"/>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+
+  <joint name="base1_rotate" type="revolute">
+    <parent link="base_link"/>
+    <child link="leg1_rotate_link"/>
+    <origin xyz="0.082 0.117 0.123" rpy="0.0 0.0 0.523599"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1" upper="1" effort="50" velocity="10"/>
+  </joint>
+
+  <joint name="leg1_thigh" type="revolute">
+    <parent link="leg1_rotate_link"/>
+    <child link="leg1_thigh_link"/>
+    <origin xyz="0.048 0 0" rpy="1.5708 -0.523599 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5" upper="1.08" effort="50" velocity="10"/>
+  </joint>
+
+  <joint name="leg1_foot" type="revolute">
+    <parent link="leg1_thigh_link"/>
+    <child link="leg1_foot_link"/>
+    <origin xyz="0.09016 0 0" rpy="3.14159 0 -1.5708"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.5" upper="0.8" effort="50" velocity="10"/>
+  </joint>
+
+<!-- 以上是一条腿，单腿的定义 -->
+<!-- 以下是对剩下的腿的定义 -->
+  <!-- ================= LEG 2 ================= -->
+  <link name="leg2_rotate_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.15"/>
+      <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/></inertial>
+    <visual><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_joint"/></visual>
+    <collision><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg2_thigh_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.18"/>
+      <inertia ixx="0.0006" ixy="0" ixz="0" iyy="0.0006" iyz="0" izz="0.0006"/></inertial>
+    <visual><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_thigh"/></visual>
+    <collision><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg2_foot_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.05"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/></inertial>
+    <visual><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_foot"/></visual>
+    <collision><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <joint name="base2_rotate" type="revolute">
+    <parent link="base_link"/><child link="leg2_rotate_link"/>
+    <origin xyz="0.121 0 0.123" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/><limit lower="-1" upper="1" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg2_thigh" type="revolute">
+    <parent link="leg2_rotate_link"/><child link="leg2_thigh_link"/>
+    <origin xyz="0.048 0 0" rpy="1.5708 -0.523599 0"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="1.08" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg2_foot" type="revolute">
+    <parent link="leg2_thigh_link"/><child link="leg2_foot_link"/>
+    <origin xyz="0.09016 0 0" rpy="3.14159 0 -1.5708"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="0.8" effort="50" velocity="10"/>
+  </joint>
+
+  <!-- ================= LEG 3 ================= -->
+  <link name="leg3_rotate_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.15"/>
+      <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/></inertial>
+    <visual><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_joint"/></visual>
+    <collision><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg3_thigh_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.18"/>
+      <inertia ixx="0.0006" ixy="0" ixz="0" iyy="0.0006" iyz="0" izz="0.0006"/></inertial>
+    <visual><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_thigh"/></visual>
+    <collision><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg3_foot_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.05"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/></inertial>
+    <visual><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_foot"/></visual>
+    <collision><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <joint name="base3_rotate" type="revolute">
+    <parent link="base_link"/><child link="leg3_rotate_link"/>
+    <origin xyz="0.082 -0.117 0.123" rpy="0 0 -0.523599"/>
+    <axis xyz="0 0 1"/><limit lower="-1" upper="1" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg3_thigh" type="revolute">
+    <parent link="leg3_rotate_link"/><child link="leg3_thigh_link"/>
+    <origin xyz="0.048 0 0" rpy="1.5708 -0.523599 0"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="1.08" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg3_foot" type="revolute">
+    <parent link="leg3_thigh_link"/><child link="leg3_foot_link"/>
+    <origin xyz="0.09016 0 0" rpy="3.14159 0 -1.5708"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="0.8" effort="50" velocity="10"/>
+  </joint>
+
+  <!-- ================= LEG 4 ================= -->
+  <link name="leg4_rotate_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.15"/>
+      <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/></inertial>
+    <visual><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_joint"/></visual>
+    <collision><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg4_thigh_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.18"/>
+      <inertia ixx="0.0006" ixy="0" ixz="0" iyy="0.0006" iyz="0" izz="0.0006"/></inertial>
+    <visual><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_thigh"/></visual>
+    <collision><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg4_foot_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.05"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/></inertial>
+    <visual><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_foot"/></visual>
+    <collision><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <joint name="base4_rotate" type="revolute">
+    <parent link="base_link"/><child link="leg4_rotate_link"/>
+    <origin xyz="-0.082 0.117 0.123" rpy="0 0 2.617994"/>
+    <axis xyz="0 0 1"/><limit lower="-1" upper="1" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg4_thigh" type="revolute">
+    <parent link="leg4_rotate_link"/><child link="leg4_thigh_link"/>
+    <origin xyz="0.048 0 0" rpy="1.5708 -0.523599 0"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="1.08" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg4_foot" type="revolute">
+    <parent link="leg4_thigh_link"/><child link="leg4_foot_link"/>
+    <origin xyz="0.09016 0 0" rpy="3.14159 0 -1.5708"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="0.8" effort="50" velocity="10"/>
+  </joint>
+
+  <!-- ================= LEG 5 ================= -->
+  <link name="leg5_rotate_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.15"/>
+      <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/></inertial>
+    <visual><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_joint"/></visual>
+    <collision><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg5_thigh_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.18"/>
+      <inertia ixx="0.0006" ixy="0" ixz="0" iyy="0.0006" iyz="0" izz="0.0006"/></inertial>
+    <visual><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_thigh"/></visual>
+    <collision><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg5_foot_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.05"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/></inertial>
+    <visual><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_foot"/></visual>
+    <collision><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <joint name="base5_rotate" type="revolute">
+    <parent link="base_link"/><child link="leg5_rotate_link"/>
+    <origin xyz="-0.121 0 0.123" rpy="0 0 3.141593"/>
+    <axis xyz="0 0 1"/><limit lower="-1" upper="1" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg5_thigh" type="revolute">
+    <parent link="leg5_rotate_link"/><child link="leg5_thigh_link"/>
+    <origin xyz="0.048 0 0" rpy="1.5708 -0.523599 0"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="1.08" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg5_foot" type="revolute">
+    <parent link="leg5_thigh_link"/><child link="leg5_foot_link"/>
+    <origin xyz="0.09016 0 0" rpy="3.14159 0 -1.5708"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="0.8" effort="50" velocity="10"/>
+  </joint>
+
+  <!-- ================= LEG 6 ================= -->
+  <link name="leg6_rotate_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.15"/>
+      <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/></inertial>
+    <visual><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_joint"/></visual>
+    <collision><geometry><mesh filename="meshes/joint.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg6_thigh_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.18"/>
+      <inertia ixx="0.0006" ixy="0" ixz="0" iyy="0.0006" iyz="0" izz="0.0006"/></inertial>
+    <visual><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_thigh"/></visual>
+    <collision><geometry><mesh filename="meshes/thigh.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <link name="leg6_foot_link">
+    <inertial><origin xyz="0 0 0"/><mass value="0.05"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/></inertial>
+    <visual><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry><material name="mat_foot"/></visual>
+    <collision><geometry><mesh filename="meshes/foot.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+  <joint name="base6_rotate" type="revolute">
+    <parent link="base_link"/><child link="leg6_rotate_link"/>
+    <origin xyz="-0.082 -0.117 0.123" rpy="0 0 -2.617994"/>
+    <axis xyz="0 0 1"/><limit lower="-1" upper="1" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg6_thigh" type="revolute">
+    <parent link="leg6_rotate_link"/><child link="leg6_thigh_link"/>
+    <origin xyz="0.048 0 0" rpy="1.5708 -0.523599 0"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="1.08" effort="50" velocity="10"/>
+  </joint>
+  <joint name="leg6_foot" type="revolute">
+    <parent link="leg6_thigh_link"/><child link="leg6_foot_link"/>
+    <origin xyz="0.09016 0 0" rpy="3.14159 0 -1.5708"/>
+    <axis xyz="0 0 1"/><limit lower="-1.5" upper="0.8" effort="50" velocity="10"/>
+  </joint>
+
+
+</robot>
