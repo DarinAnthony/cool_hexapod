@@ -26,7 +26,22 @@ class HexapodEnv(DirectRLEnv):
         super().__init__(cfg, render_mode, **kwargs)
 
         # Enable markers only when not headless (e.g., render_mode="human")
-        self._visualization_enabled = render_mode is not None
+        self._visualization_enabled = True
+
+        if self._visualization_enabled:
+            # velocity/command visualization 
+            self.visualization_markers = self.define_markers()
+
+            # z-axis for yaw rotations
+            self._up_dir = torch.tensor([0.0, 0.0, 1.0], device=self.device)
+
+            # marker positions/orientations
+            self._marker_locations = torch.zeros(self.cfg.scene.num_envs, 3, device=self.device)
+            self._marker_offset = torch.zeros(self.cfg.scene.num_envs, 3, device=self.device)
+            self._marker_offset[:, 2] = 0.5  # put arrows slightly above robot
+
+            self._command_marker_orientations = torch.zeros(self.cfg.scene.num_envs, 4, device=self.device)
+            self._vel_marker_orientations = torch.zeros(self.cfg.scene.num_envs, 4, device=self.device)
 
         # Joint position command (deviation from default joint positions)
         self._actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
@@ -78,22 +93,6 @@ class HexapodEnv(DirectRLEnv):
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
-
-        if self._visualization_enabled:
-            # velocity/command visualization 
-            self.visualization_markers = self.define_markers()
-
-            # z-axis for yaw rotations
-            self._up_dir = torch.tensor([0.0, 0.0, 1.0], device=self.device)
-
-            # marker positions/orientations
-            self._marker_locations = torch.zeros(self.cfg.scene.num_envs, 3, device=self.device)
-            self._marker_offset = torch.zeros(self.cfg.scene.num_envs, 3, device=self.device)
-            self._marker_offset[:, 2] = 0.5  # put arrows slightly above robot
-
-            self._command_marker_orientations = torch.zeros(self.cfg.scene.num_envs, 4, device=self.device)
-            self._vel_marker_orientations = torch.zeros(self.cfg.scene.num_envs, 4, device=self.device)
-
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self._actions = actions.clone()
