@@ -54,7 +54,7 @@ class HexapodFlatEnvCfg(DirectRLEnvCfg):
     # env
     episode_length_s = 20.0
     decimation = 4
-    action_scale = 0.5
+    action_scale = 5.0
 
     # 18 joints → action dim 18 (one command per joint)
     action_space = 18
@@ -121,6 +121,7 @@ class HexapodFlatEnvCfg(DirectRLEnvCfg):
     feet_air_time_reward_scale = 0.5
     undesired_contact_reward_scale = -1.0
     flat_orientation_reward_scale = -5.0
+    base_contact_reward_scale = -0.1
 
 
 @configclass

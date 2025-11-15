@@ -66,6 +66,8 @@ class HexapodEnv(DirectRLEnv):
                 "feet_air_time",
                 "undesired_contacts",
                 "flat_orientation_l2",
+                "base_contact_l2",    
+                # "base_height_penalty",
             ]
         }
         # Get specific body indices, matching your URDF link names
@@ -96,13 +98,15 @@ class HexapodEnv(DirectRLEnv):
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self._actions = actions.clone()
-        self._processed_actions = self.cfg.action_scale * self._actions + self._robot.data.default_joint_pos
+        # self._processed_actions = self.cfg.action_scale * self._actions + self._robot.data.default_joint_pos
+        self._processed_actions = self.cfg.action_scale * self._actions
 
         if self._visualization_enabled:
             self._visualize_markers()
 
     def _apply_action(self):
-        self._robot.set_joint_position_target(self._processed_actions)
+        # self._robot.set_joint_position_target(self._processed_actions)
+        self._robot.set_joint_velocity_target(self._processed_actions)
 
     def _get_observations(self) -> dict:
         self._previous_actions = self._actions.clone()
@@ -152,11 +156,28 @@ class HexapodEnv(DirectRLEnv):
             torch.norm(self._commands[:, :2], dim=1) > 0.1
         )
 
-        net_contact_forces = self._contact_sensor.data.net_forces_w_history
-        is_contact = (
-            torch.max(torch.norm(net_contact_forces[:, :, self._undesired_contact_body_ids], dim=-1), dim=1)[0] > 1.0
-        )
-        contacts = torch.sum(is_contact, dim=1)
+        # Use instantaneous forces, not history
+        net_contact_forces = self._contact_sensor.data.net_forces_w  # [N, B, 3]
+
+        # --- Base contact penalty ---
+        base_forces = net_contact_forces[:, self._base_id, :]   # [N, num_base, 3]
+        base_force_mag = torch.norm(base_forces, dim=-1)        # [N, num_base]
+        max_base_force, _ = torch.max(base_force_mag, dim=1)    # [N]
+
+        soft_threshold = 10.0
+        base_force_excess = torch.clamp(max_base_force - soft_threshold, min=0.0)
+        base_contact_penalty = base_force_excess                # [N]
+
+        # --- Undesired contacts (thighs vs ground) ---
+        # Select undesired bodies along the *body* dimension
+        undesired_forces = net_contact_forces[:, self._undesired_contact_body_ids, :]  # [N, U, 3]
+        undesired_force_mag = torch.norm(undesired_forces, dim=-1)                     # [N, U]
+
+        # Boolean: which undesired bodies are in "strong" contact
+        is_contact = undesired_force_mag > 1.0   # [N, U]
+
+        # Count how many per env
+        contacts = torch.sum(is_contact, dim=1).float()  # [N]
 
         flat_orientation = torch.sum(torch.square(self._robot.data.projected_gravity_b[:, :2]), dim=1)
 
@@ -168,7 +189,8 @@ class HexapodEnv(DirectRLEnv):
             "dof_torques_l2": joint_torques * self.cfg.joint_torque_reward_scale * self.step_dt,
             "dof_acc_l2": joint_accel * self.cfg.joint_accel_reward_scale * self.step_dt,
             "action_rate_l2": action_rate * self.cfg.action_rate_reward_scale * self.step_dt,
-            "feet_air_time": air_time * self.cfg.feet_air_time_reward_scale * self.step_dt,
+            "base_contact_l2": base_contact_penalty * self.cfg.base_contact_reward_scale * self.step_dt,
+            # "feet_air_time": air_time * self.cfg.feet_air_time_reward_scale * self.step_dt,
             "undesired_contacts": contacts * self.cfg.undesired_contact_reward_scale * self.step_dt,
             "flat_orientation_l2": flat_orientation * self.cfg.flat_orientation_reward_scale * self.step_dt,
         }
@@ -184,10 +206,31 @@ class HexapodEnv(DirectRLEnv):
     #     return died, time_out
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
+        # episode timeout as usual
         time_out = self.episode_length_buf >= self.max_episode_length - 1
-        # DEBUG: ignore base_contact deaths for a moment
-        died = torch.zeros_like(time_out)
+
+        # --- Base contact termination ---
+        # Shape: [num_envs, num_bodies, 3]
+        net_contact_forces = self._contact_sensor.data.net_forces_w
+
+        # Select base_link bodies; _base_id is typically a 1D tensor/list of indices
+        # Result shape: [num_envs, num_base_bodies, 3]
+        base_forces = net_contact_forces[:, self._base_id, :]
+
+        # Magnitude per base body: [num_envs, num_base_bodies]
+        base_force_mag = torch.norm(base_forces, dim=-1)
+
+        # Max force over base bodies for each env: [num_envs]
+        max_base_force, _ = torch.max(base_force_mag, dim=1)
+
+        # Threshold - tune this. Start small (e.g. 50–100 N) for your small hexapod.
+        base_contact_threshold = 40.0
+
+        died = max_base_force > base_contact_threshold
+
         return died, time_out
+
+
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
         if env_ids is None or len(env_ids) == self.num_envs:
