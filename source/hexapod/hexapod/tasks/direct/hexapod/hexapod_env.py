@@ -26,7 +26,8 @@ class HexapodEnv(DirectRLEnv):
         super().__init__(cfg, render_mode, **kwargs)
 
         # Enable markers only when not headless (e.g., render_mode="human")
-        self._visualization_enabled = False
+        self._visualization_enabled = True
+        self.debug = True
 
         if self._visualization_enabled:
             # velocity/command visualization 
@@ -67,6 +68,7 @@ class HexapodEnv(DirectRLEnv):
                 "undesired_contacts",
                 "flat_orientation_l2",
                 "base_contact_l2",    
+                "heading_align",
                 # "base_height_penalty",
             ]
         }
@@ -143,6 +145,22 @@ class HexapodEnv(DirectRLEnv):
         yaw_rate_error = torch.square(self._commands[:, 2] - self._robot.data.root_ang_vel_b[:, 2])
         yaw_rate_error_mapped = torch.exp(-yaw_rate_error / 0.25)
 
+                # Directional alignment between commanded and actual velocity in body frame
+        cmd_xy = self._commands[:, :2]                       # [N, 2]
+        vel_xy = self._robot.data.root_lin_vel_b[:, :2]      # [N, 2]
+
+        cmd_norm = torch.norm(cmd_xy, dim=1)
+        vel_norm = torch.norm(vel_xy, dim=1)
+        dot = torch.sum(cmd_xy * vel_xy, dim=1)
+
+        cos_sim = dot / (cmd_norm * vel_norm + 1e-6)         # [-1, 1]
+        heading_align = (cos_sim + 1.0) * 0.5                # [0, 1]
+
+        # Optional: only care when we asked for meaningful motion
+        moving_mask = (cmd_norm > 0.2).float()
+        heading_align = heading_align * moving_mask
+
+
         z_vel_error = torch.square(self._robot.data.root_lin_vel_b[:, 2])
         ang_vel_error = torch.sum(torch.square(self._robot.data.root_ang_vel_b[:, :2]), dim=1)
 
@@ -193,10 +211,40 @@ class HexapodEnv(DirectRLEnv):
             # "feet_air_time": air_time * self.cfg.feet_air_time_reward_scale * self.step_dt,
             "undesired_contacts": contacts * self.cfg.undesired_contact_reward_scale * self.step_dt,
             "flat_orientation_l2": flat_orientation * self.cfg.flat_orientation_reward_scale * self.step_dt,
+            "heading_align": heading_align * 1.0 * self.step_dt,
         }
         reward = torch.sum(torch.stack(list(rewards.values())), dim=0)
         for key, value in rewards.items():
             self._episode_sums[key] += value
+
+
+        # --- Simple debug print every N steps ---
+        if self.debug:
+            if not hasattr(self, "_debug_step_counter"):
+                self._debug_step_counter = 0
+            self._debug_step_counter += 1
+
+            if self._debug_step_counter % 100 == 0:
+                with torch.no_grad():
+                    vel_b_xy = self._robot.data.root_lin_vel_b[:, :2]     # [N, 2]
+                    cmd_b_xy = self._commands[:, :2]                      # [N, 2]
+
+                    speed = torch.norm(vel_b_xy, dim=1).mean().item()
+
+                    # cosine between cmd and velocity in body frame
+                    num = torch.sum(cmd_b_xy * vel_b_xy, dim=1)
+                    den = (
+                        torch.norm(cmd_b_xy, dim=1)
+                        * torch.norm(vel_b_xy, dim=1)
+                        + 1e-6
+                    )
+                    cos_align = (num / den).mean().item()
+
+                print(
+                    f"[Hexapod] mean_speed_b = {speed:.3f}, "
+                    f"mean_cos(cmd_b, vel_b) = {cos_align:.3f}"
+                )
+        
         return reward
 
     # def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
@@ -276,13 +324,13 @@ class HexapodEnv(DirectRLEnv):
         marker_cfg = VisualizationMarkersCfg(
             prim_path="/Visuals/hexapodMarkers",
             markers={
-                # 0: command velocity arrow (red)
+                # 0: command (red)
                 "command": sim_utils.UsdFileCfg(
                     usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
                     scale=(0.25, 0.25, 0.5),
                     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
                 ),
-                # 1: actual velocity arrow (cyan)
+                # 1: actual velocity (blue/cyan)
                 "velocity": sim_utils.UsdFileCfg(
                     usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
                     scale=(0.25, 0.25, 0.5),
@@ -293,38 +341,56 @@ class HexapodEnv(DirectRLEnv):
         return VisualizationMarkers(cfg=marker_cfg)
 
     def _visualize_markers(self):
-        """Draw arrows for command velocity (red) and actual base velocity (cyan)."""
+        """Draw arrows for commanded velocity (red) and actual velocity (blue) in world frame."""
         if not self._visualization_enabled:
             return
 
-        # Place markers at base position + small z-offset
-        base_pos = self._robot.data.root_pos_w  # [num_envs, 3]
-        self._marker_locations = base_pos + self._marker_offset
+        # Base positions (world)
+        base_pos = self._robot.data.root_pos_w  # [N, 3]
+        self._marker_locations = base_pos + self._marker_offset  # lift arrows above robot
 
-        # --- Command velocity: use XY components only ---
-        cmd_xy = self._commands[:, :2]                          # [N, 2]
+        # --- 1. COMMAND VELOCITY DIRECTION IN WORLD FRAME ---
+
+        # Commands are stored in BODY frame: [v_x_b, v_y_b, yaw_rate]
+        cmd_b_xy = self._commands[:, :2]  # [N, 2]
+
+        # Make them 3D by adding z = 0
+        cmd_b = torch.cat(
+            [cmd_b_xy, torch.zeros((self.num_envs, 1), device=self.device)],
+            dim=-1,
+        )  # [N, 3]
+
+        # Rotate into WORLD frame using base orientation
+        # root_quat_w: orientation of body in world
+        cmd_w = math_utils.quat_apply(self._robot.data.root_quat_w, cmd_b)  # [N, 3]
+
+        # Project to XY plane for yaw
+        cmd_xy = cmd_w[:, :2]  # [N, 2]
         cmd_norm = torch.norm(cmd_xy, dim=1, keepdim=True).clamp(min=1e-6)
         cmd_dir_xy = cmd_xy / cmd_norm
         cmd_yaw = torch.atan2(cmd_dir_xy[:, 1], cmd_dir_xy[:, 0]).unsqueeze(-1)  # [N, 1]
 
-        # --- Actual base linear velocity in world frame (XY only) ---
-        vel_xy = self._robot.data.root_lin_vel_w[:, :2]         # [N, 2]
+        # Quaternion for command direction (rotation about z-axis)
+        cmd_orient = math_utils.quat_from_angle_axis(cmd_yaw, self._up_dir).squeeze()  # [N, 4]
+
+        # --- 2. ACTUAL VELOCITY DIRECTION IN WORLD FRAME ---
+
+        vel_xy = self._robot.data.root_lin_vel_w[:, :2]  # [N, 2]
         vel_norm = torch.norm(vel_xy, dim=1, keepdim=True).clamp(min=1e-6)
         vel_dir_xy = vel_xy / vel_norm
         vel_yaw = torch.atan2(vel_dir_xy[:, 1], vel_dir_xy[:, 0]).unsqueeze(-1)
 
-        # Convert yaws to quaternions around z-axis
-        self._command_marker_orientations = math_utils.quat_from_angle_axis(cmd_yaw, self._up_dir).squeeze()
-        self._vel_marker_orientations = math_utils.quat_from_angle_axis(vel_yaw, self._up_dir).squeeze()
+        vel_orient = math_utils.quat_from_angle_axis(vel_yaw, self._up_dir).squeeze()  # [N, 4]
 
-        # Stack locations and rotations: first all commands, then all velocities
+        # --- 3. Stack locations & orientations: command (red) then velocity (blue) ---
+
         loc = torch.vstack((self._marker_locations, self._marker_locations))
-        rots = torch.vstack((self._command_marker_orientations, self._vel_marker_orientations))
+        rots = torch.vstack((cmd_orient, vel_orient))
 
-        # Marker indices: 0 = "command", 1 = "velocity"
         all_envs = torch.arange(self.cfg.scene.num_envs, device=self.device)
+        # index 0 = "command", 1 = "velocity" (ordering in define_markers)
         indices = torch.hstack((torch.zeros_like(all_envs), torch.ones_like(all_envs)))
 
-        # Draw them
         self.visualization_markers.visualize(loc, rots, marker_indices=indices)
+
 

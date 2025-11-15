@@ -112,16 +112,24 @@ class HexapodFlatEnvCfg(DirectRLEnvCfg):
 
     # reward scales (start by copying ANYmal’s)
     lin_vel_reward_scale = 1.0
-    yaw_rate_reward_scale = 0.5
+    # yaw_rate_reward_scale = 0.5
+    yaw_rate_reward_scale = 1.0
     z_vel_reward_scale = -2.0
     ang_vel_reward_scale = -0.05
-    joint_torque_reward_scale = -2.5e-5
-    joint_accel_reward_scale = -2.5e-7
-    action_rate_reward_scale = -0.01
+    # joint_torque_reward_scale = -2.5e-5
+    # joint_accel_reward_scale = -2.5e-7
+    # action_rate_reward_scale = -0.01
     feet_air_time_reward_scale = 0.5
     undesired_contact_reward_scale = -1.0
-    flat_orientation_reward_scale = -5.0
+    # flat_orientation_reward_scale = -5.0
     base_contact_reward_scale = -0.1
+
+    joint_torque_reward_scale = -1.0e-5
+    joint_accel_reward_scale = -1.0e-7
+    action_rate_reward_scale = -5.0e-3
+    flat_orientation_reward_scale = -2.0
+    heading_reward_scale = 1.0 
+
 
 
 @configclass
